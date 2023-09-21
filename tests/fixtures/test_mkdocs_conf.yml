@@ -1,0 +1,8 @@
+site_name: TestProgram
+
+plugins:
+  pre_gen:
+    template_extension: '.template'
+
+markdown_extensions:
+  - admonition

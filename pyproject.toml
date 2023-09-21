@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "mkdocs-pre-gen"
+version = "0.1.0"
+description = ""
+authors = ["Werner Smit <wernerj101@gmail.com>"]
+readme = "README.md"
+packages = [{include = "mkdocs_pre_gen"}]
+
+[project.urls]
+Homepage = "https://github.com/werner-smit/mkdocs-pre-gen.git"
+
+[tool.poetry.plugins."mkdocs.plugins"]
+"pre-gen" = "mkdocs_pre_gen.plugin:PreGenPlugin"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+mkdocs = "^1.5.2"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.2"
+mypy = "^1.5.1"
+tox = "^4.11.3"
+types-markdown = "^3.4.2.10"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
