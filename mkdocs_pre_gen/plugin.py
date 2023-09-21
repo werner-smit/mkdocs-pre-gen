@@ -41,14 +41,15 @@ class PreGenPlugin(BasePlugin):
 
     def on_pre_build(self, config: Config):
         """Initialize the plugin with the MkDocs configuration."""
+        self.global_config = config
         #self.config = config
         self.template_ext = self.config['template_extension']
 
     def _get_md_handler(self) -> Markdown:
         """Create and configure a Markdown handler with extensions."""
         md = Markdown(
-            extensions=self.config['markdown_extensions'],
-            extension_configs=self.config['mdx_configs'] or {},
+            extensions=self.global_config.get('markdown_extensions', []),
+            extension_configs=self.global_config['mdx_configs'] or {},
         )
         return md
 
@@ -76,9 +77,11 @@ class PreGenPlugin(BasePlugin):
 
             template_path = file.abs_src_path
             markdown_path = os.path.splitext(template_path)[0]  # Remove the .template extension
+            markdown_rel_file = os.path.splitext(file.src_path)[0]
             # Ensure the resulting file is an .md file
             if not markdown_path.endswith('.md'):
-                markdown_path = markdown_path + '.md'
+                markdown_path += '.md'
+                markdown_rel_file += '.md'
 
             with open(template_path, 'r', encoding='utf-8') as template_file:
                 template_content = template_file.read()
@@ -86,16 +89,28 @@ class PreGenPlugin(BasePlugin):
             # Use MkDocs' built-in markdown extensions to pre-evaluate the template
             markdown_content = self._make_content(template_content)
 
+            # The file doesn't exist yet, so we add it to the files list in order to be rendered once it has been
+            # written.
+            if not os.path.isfile(markdown_path):
+                files.append(File(
+                    markdown_rel_file,
+                    config['docs_dir'],
+                    config['site_dir'],
+                    config['use_directory_urls'],
+                ))
+
             # Write the generated Markdown content to the .md file
             with open(markdown_path, 'w', encoding='utf-8') as markdown_file:
-                markdown_file.writelines(markdown_content)
+                if is_data_different(markdown_path, markdown_content):
+                    markdown_file.writelines(markdown_content)
+            log.info(f'Converted {file.src_path} -> {markdown_rel_file}')
+        return files
 
-            # Add the generated file to the MkDocs files collection
-            files.append(File(
-                file.src_path,
-                config['docs_dir'],
-                config['site_dir'],
-                config['use_directory_urls'],
-            ))
-            files.remove(file)
-
+def is_data_different(filename, new_data):
+    try:
+        with open(filename, 'r') as file:
+            existing_data = file.read()
+            return existing_data != new_data
+    except FileNotFoundError:
+        # If the file doesn't exist, consider the data as different.
+        return True
